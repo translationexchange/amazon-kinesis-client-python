@@ -14,7 +14,7 @@ express or implied. See the License for the specific language governing
 permissions and limitations under the License.
 '''
 from __future__ import print_function
-import sys, time, json, base64, boto3
+import sys, time, json, base64, boto3, elasticsearch
 from amazon_kclpy import kcl
 S3 = boto3.client('s3', 'us-west-1')
 
@@ -84,6 +84,11 @@ class RecordProcessor(kcl.RecordProcessorBase):
         S3.put_object(Body=data, Bucket='trex-analyst', Key=key)
         return
 
+    def essubmit(self, data):
+        es = elasticsearch.Elasticsearch(['http://trexlogs-703152515.us-west-1.elb.amazonaws.com:9200'])
+        es.index(index='kinesis', doc_type='logs', body=data)
+        return
+
     def process_record(self, data, partition_key, sequence_number):
         '''
         Called for each record that is passed to process_records.
@@ -99,7 +104,8 @@ class RecordProcessor(kcl.RecordProcessorBase):
         '''
         ####################################
         # Insert your processing logic here
-        self.s3submit(data, sequence_number)
+        #self.s3submit(data, sequence_number)
+        self.essubmit(data)
         ####################################
         return
 
