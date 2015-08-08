@@ -14,8 +14,9 @@ express or implied. See the License for the specific language governing
 permissions and limitations under the License.
 '''
 from __future__ import print_function
-import sys, time, json, base64
+import sys, time, json, base64, boto3
 from amazon_kclpy import kcl
+S3 = boto3.client('s3', 'us-west-1')
 
 class RecordProcessor(kcl.RecordProcessorBase):
     '''
@@ -78,6 +79,11 @@ class RecordProcessor(kcl.RecordProcessorBase):
                     sys.stderr.write('Encountered an error while checkpointing, error was {e}.\n'.format(e=e))
             time.sleep(self.SLEEP_SECONDS)
 
+    def s3submit(self, data, sequence_number):
+        key = str(sequence_number) + '.log'
+        S3.put_object(Body=data, Bucket='trex-analyst', Key=key)
+        return
+
     def process_record(self, data, partition_key, sequence_number):
         '''
         Called for each record that is passed to process_records.
@@ -93,6 +99,7 @@ class RecordProcessor(kcl.RecordProcessorBase):
         '''
         ####################################
         # Insert your processing logic here
+        self.s3submit(data, sequence_number)
         ####################################
         return
 
